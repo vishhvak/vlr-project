@@ -1,36 +1,17 @@
-
 from share import *
 import config
 
+import os
 import cv2
+import torch
 import einops
-import gradio as gr
-import numpy as np
-import torchc
-import random
 import argparse
+import numpy as np
 
 from pytorch_lightning import seed_everything
 from annotator.util import resize_image, HWC3
-from annotator.canny import CannyDetector
-from cldm.model import create_model, load_state_dict
-from cldm.ddim_hacked import DDIMSampler
 
-apply_canny = CannyDetector()
-
-model = create_model('./models/cldm_v15.yaml').cpu()
-model.load_state_dict(load_state_dict('./models/control_sd15_canny.pth', location='cuda'))
-
-# Uncomment if using your own weights
-# weights_path = None
-# print("Loading Checkpoint Weights ...")
-# model.load_state_dict(torch.load(weights_path)
-# print("Loading Checkpoint Weights Successful!!!")
-
-model = model.cuda()
-ddim_sampler = DDIMSampler(model)
-
-def inference(input_image, prompt, a_prompt, n_prompt, num_samples, image_resolution, ddim_steps, guess_mode, strength, scale, seed, eta, low_threshold, high_threshold):
+def inference(input_image, output_image, prompt, a_prompt, n_prompt, num_samples, image_resolution, ddim_steps, guess_mode, strength, scale, seed, eta, low_threshold, high_threshold, apply_canny, model, ddim_sampler):
     with torch.no_grad():
         img = resize_image(HWC3(input_image), image_resolution)
         H, W, C = img.shape
@@ -71,39 +52,4 @@ def inference(input_image, prompt, a_prompt, n_prompt, num_samples, image_resolu
 
     # Save the resulting images to the output path
     for i in range(len(results)):
-        cv2.imwrite(args.output_path + str(i) + '.jpg', results[i])
-
-# Write main function below with if __name__ == '__main__'
-if __name__ == '__main__':
-    # Get image_path from command line
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--image_folder', type=str, default='./images/')
-    parser.add_argument('--prompt', type=str)
-    parser.add_argument('--a_prompt', type=str, default='') 
-    parser.add_argument('--n_prompt', type=str, default='')
-    parser.add_argument('--num_samples', type=int, default=1)
-    parser.add_argument('--image_resolution', type=int, default=256)
-    parser.add_argument('--ddim_steps', type=int, default=20)
-    parser.add_argument('--guess_mode', type=bool, default=False)
-    parser.add_argument('--control_strength', type=float, default=0.5)
-    parser.add_argument('--guidance_scale', type=float, default=0.5)
-    parser.add_argument('--seed', type=int, default=16824)
-    parser.add_argument('--eta', type=float, default=0)
-    parser.add_argument('--low_threshold', type=float, default=100)
-    parser.add_argument('--high_threshold', type=float, default=200)
-    parser.add_argument('--output_folder', type=str, default='./outputs/')
-    args = parser.parse_args()
-
-    # Get all jpg files in the image_folder using glob
-    image_files = os.listdir(args.image_folder)
-    image_paths = [os.path.join(args.image_folder, image_file) for image_file in image_files]
-
-    # Loop through all the image paths
-    for image_path in image_paths:
-        # Read the image using cv2.imread
-        input_image = cv2.imread(image_path)
-        # Call inference function
-        inference(input_image, args.prompt, args.a_prompt, args.n_prompt, args.num_samples, args.image_resolution, args.ddim_steps, args.guess_mode, args.control_strength, args.guidanec_scale, args.seed, args.eta, args.low_threshold, args.high_threshold)
-    
-
-    
+        cv2.imwrite(output_image, results[i])
