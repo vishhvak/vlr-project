@@ -57,10 +57,10 @@ def load_prompts():
         'The word "{}" with solid jello alphabets on plain background'
     ]
 
-def load_labels():
-    with open('input_labels.txt', 'r') as f:
+def load_paths_and_labels():
+    with open('./data/input_labels.txt', 'r') as f:
         lines = f.readlines()
-    return [line.strip() for line in lines]
+    return [line.strip().split(",") for line in lines]
 
 def control_net_aug():
     # Load models to avoid reloading for each prompt
@@ -85,19 +85,16 @@ def control_net_aug():
     os.makedirs(output_folder, exist_ok=True)
 
     prompts = load_prompts()
-    labels = load_labels()
-    image_files = os.listdir(image_folder)
-    image_paths = [
-        os.path.join(image_folder, image_file) for image_file in image_files
-    ]
+    paths_and_labels = load_paths_and_labels()
     for prompt in prompts:
-        for image_path, label in zip(image_paths, labels):
+        for path_and_label in paths_and_labels:
+            image_path, label = path_and_label
+            print(image_path, label)
             populated_prompt = prompt.format(label)
             input_image = cv2.imread(image_path)
             out_basepath, _ = os.path.splitext(image_path)
             out_basepath = out_basepath.split("/")[-1]
             output_image = output_folder + out_basepath + ".jpg"
-            print(output_image)
             
             inference(
                 input_image, output_image, populated_prompt, a_prompt, n_prompt, num_samples, image_resolution, ddim_steps, guess_mode, control_strength, guidance_scale, seed, eta, low_threshold, high_threshold, apply_canny, model, ddim_sampler
