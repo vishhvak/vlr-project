@@ -1,7 +1,8 @@
 .idea/
 data/
-models/
-annotator/
+models/*.pth
+annotator/ckpts/*.pth
+annotator/ckpts/*.pt
 training/
 lightning_logs/
 image_log/
