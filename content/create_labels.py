@@ -14,7 +14,7 @@ with open(label_file, 'r') as f:
     labels = f.read().splitlines()
 
 # Get list of image filenames in folder
-img_filenames = os.listdir(img_folder)
+img_filenames = sorted(os.listdir(img_folder))
 
 # Generate lines for output text file
 output_lines = [f"{img_filename},{label}\n" for img_filename, label in zip(img_filenames, labels)]

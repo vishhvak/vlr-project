@@ -35,7 +35,7 @@ def super_res_smooth(input_folder):
     model_arch_name = "srresnet_x4"
     model_weights_path = "./super_res_pytorch/results/pretrained_models/SRGAN_x4-ImageNet-8c4a7569.pth.tar"
     device_type = "cuda"
-    output_folder = "./data/super_res_inputs/"
+    output_folder = "./content/super_res_inputs/"
 
     assert os.path.exists(input_folder), "No input data provided!"
     os.makedirs(output_folder, exist_ok=True)
@@ -70,7 +70,7 @@ def control_net_aug(labels_path, prompts_path, output_folder):
     # Load models to avoid reloading for each prompt
     apply_canny, model, ddim_sampler = load_controlnet_models()
 
-    image_folder = "./data/super_res_inputs/"
+    image_folder = "./content/super_res_inputs/"
     a_prompt = "best quality, extremely detailed"
     n_prompt = "longbody, lowres, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality"
     num_samples = 1
@@ -101,7 +101,7 @@ def control_net_aug(labels_path, prompts_path, output_folder):
             inference(
                 input_image, output_image, populated_prompt, a_prompt, n_prompt, num_samples, image_resolution, ddim_steps, guess_mode, control_strength, guidance_scale, seed, eta, low_threshold, high_threshold, apply_canny, model, ddim_sampler
             )
-    shutil.rmtree("./data/super_res_inputs")
+    shutil.rmtree(image_folder)
 
 
 if __name__ == "__main__":
