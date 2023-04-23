@@ -1,6 +1,7 @@
 import os
 import cv2
 import shutil
+import argparse
 import subprocess
 
 from annotator.canny import CannyDetector
@@ -29,12 +30,11 @@ def load_controlnet_models():
     return apply_canny, model, ddim_sampler
 
 
-def super_res_smooth():
+def super_res_smooth(input_folder):
     # Set the arguments for the super resolution script
     model_arch_name = "srresnet_x4"
     model_weights_path = "./super_res_pytorch/results/pretrained_models/SRGAN_x4-ImageNet-8c4a7569.pth.tar"
     device_type = "cuda"
-    input_folder = "./data/inputs/"
     output_folder = "./data/super_res_inputs/"
 
     assert os.path.exists(input_folder), "No input data provided!"
@@ -54,24 +54,23 @@ def super_res_smooth():
                             '--device_type', device_type])
 
 
-def load_prompts():
-    with open("prompts.txt", "r") as f:
+def load_prompts(prompts_path):
+    with open(prompts_path, "r") as f:
         prompts = f.readlines()
     return [prompt.strip() for prompt in prompts]
 
 
-def load_paths_and_labels():
-    with open('./data/input_labels.txt', 'r') as f:
+def load_paths_and_labels(labels_path):
+    with open(labels_path, 'r') as f:
         lines = f.readlines()
     return [line.strip().split(",") for line in lines]
 
 
-def control_net_aug():
+def control_net_aug(labels_path, prompts_path, output_folder):
     # Load models to avoid reloading for each prompt
     apply_canny, model, ddim_sampler = load_controlnet_models()
 
     image_folder = "./data/super_res_inputs/"
-    output_folder = "./data/final_output/"
     a_prompt = "best quality, extremely detailed"
     n_prompt = "longbody, lowres, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality"
     num_samples = 1
@@ -88,14 +87,12 @@ def control_net_aug():
     os.makedirs(image_folder, exist_ok=True)
     os.makedirs(output_folder, exist_ok=True)
 
-    prompts = load_prompts()
-    paths_and_labels = load_paths_and_labels()
+    paths_and_labels = load_paths_and_labels(labels_path)
+    prompts = load_prompts(prompts_path)
     for path_and_label in paths_and_labels:
         for idx, prompt in enumerate(prompts):
             image_path, label = path_and_label
-            print(image_path, label)
             populated_prompt = prompt.format(label)
-            print(f"Current prompt: {populated_prompt}")
             input_image = cv2.imread(image_path)
             out_basepath, _ = os.path.splitext(image_path)
             out_basepath = out_basepath.split("/")[-1]
@@ -108,8 +105,25 @@ def control_net_aug():
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Run the super-resolution and control-net augmentation pipelines.')
+    parser.add_argument('--input_folder', type=str, default=None,
+                        help='Path to the input folder for super-resolution + smoothing pipeline')
+    parser.add_argument('--output_folder', type=str, default=None,
+                        help='Path to the output folder for control-net augmentation')
+    parser.add_argument('--labels_path', type=str, default=None,
+                        help='Path to the labels text file for control-net augmentation')
+    parser.add_argument('--prompts_path', type=str, default=None,
+                        help='Path to the prompts text file for control-net augmentation')
+    args = parser.parse_args()
+
     # Run the super-resolution + smoothing pipeline
-    super_res_smooth()
+    super_res_smooth(
+        input_folder=args.input_folder
+    )
 
     # Run control-net augmentation
-    control_net_aug()
+    control_net_aug(
+        labels_path=args.labels_path,
+        prompts_path=args.prompts_path,
+        output_folder=args.output_folder
+    )
