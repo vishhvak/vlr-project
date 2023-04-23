@@ -1,6 +1,5 @@
 import os
 import cv2
-import shutil
 import argparse
 import subprocess
 
@@ -17,41 +16,10 @@ def load_controlnet_models():
     model.load_state_dict(
         load_state_dict('./models/control_sd15_canny.pth', location='cuda')
     )
-
-    # Uncomment if using your own weights
-    # weights_path = None
-    # print("Loading Checkpoint Weights ...")
-    # model.load_state_dict(torch.load(weights_path)
-    # print("Loading Checkpoint Weights Successful!!!")
-
     model = model.cuda()
     ddim_sampler = DDIMSampler(model)
 
     return apply_canny, model, ddim_sampler
-
-
-def super_res_smooth(input_folder):
-    # Set the arguments for the super resolution script
-    model_arch_name = "srresnet_x4"
-    model_weights_path = "./super_res_pytorch/results/pretrained_models/SRGAN_x4-ImageNet-8c4a7569.pth.tar"
-    device_type = "cuda"
-    output_folder = "./content/super_res_inputs/"
-
-    assert os.path.exists(input_folder), "No input data provided!"
-    os.makedirs(output_folder, exist_ok=True)
-
-    # Loop over all the images in the input folder and call the super resolution script on each one
-    for filename in os.listdir(input_folder):
-        if filename.endswith('.jpg') or filename.endswith('.png') or filename.endswith('.jpeg'):
-            input_path = os.path.join(input_folder, filename)
-            output_path = os.path.join(output_folder, filename)
-            subprocess.run(['python', 
-                            './super_res_pytorch/inference.py',
-                            '--model_arch_name', model_arch_name,
-                            '--inputs_path', input_path,
-                            '--output_path', output_path,
-                            '--model_weights_path', model_weights_path,
-                            '--device_type', device_type])
 
 
 def load_prompts(prompts_path):
@@ -66,48 +34,59 @@ def load_paths_and_labels(labels_path):
     return [line.strip().split(",") for line in lines]
 
 
-def control_net_aug(labels_path, prompts_path, output_folder):
-    # Load models to avoid reloading for each prompt
-    apply_canny, model, ddim_sampler = load_controlnet_models()
+def super_res_smooth_img(input_path):
+    model_arch_name = "srresnet_x4"
+    model_weights_path = "./super_res_pytorch/results/pretrained_models/SRGAN_x4-ImageNet-8c4a7569.pth.tar"
+    device_type = "cuda"
+    output_folder = "./content/super_res_inputs/"
 
-    image_folder = "./content/super_res_inputs/"
+    os.makedirs(output_folder, exist_ok=True)
+
+    if (
+        input_path.endswith('.jpg') or 
+        input_path.endswith('.png') or 
+        input_path.endswith('.jpeg')
+    ):
+        out_basepath, _ = os.path.splitext(input_path)
+        out_img_name = out_basepath.split("/")[-1] + ".jpg"
+        output_path = os.path.join(output_folder, out_img_name)
+        subprocess.run(['python', 
+                        './super_res_pytorch/inference.py',
+                        '--model_arch_name', model_arch_name,
+                        '--inputs_path', input_path,
+                        '--output_path', output_path,
+                        '--model_weights_path', model_weights_path,
+                        '--device_type', device_type])
+        return output_path
+
+
+def control_net_aug_img(input_path, output_path, prompt):
     a_prompt = "best quality, extremely detailed"
     n_prompt = "longbody, lowres, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality"
     num_samples = 1
     image_resolution = 256
     ddim_steps = 20
     guess_mode = False
-    control_strength = 0.8
-    guidance_scale = 0.8
+    control_strength = 0.95
+    guidance_scale = 0.4
     seed = 16824
     eta = 0
-    low_threshold = 40
-    high_threshold = 80
+    low_threshold = 20
+    high_threshold = 100
 
-    os.makedirs(image_folder, exist_ok=True)
-    os.makedirs(output_folder, exist_ok=True)
+    input_image = cv2.imread(input_path)
+    inference(
+        input_image, output_path, prompt, a_prompt, n_prompt, num_samples, image_resolution, ddim_steps, guess_mode, control_strength, guidance_scale, seed, eta, low_threshold, high_threshold, apply_canny, model, ddim_sampler
+    )
 
-    paths_and_labels = load_paths_and_labels(labels_path)
-    prompts = load_prompts(prompts_path)
-    for path_and_label in paths_and_labels:
-        for idx, prompt in enumerate(prompts):
-            image_path, label = path_and_label
-            populated_prompt = prompt.format(label)
-            input_image = cv2.imread(image_path)
-            out_basepath, _ = os.path.splitext(image_path)
-            out_basepath = out_basepath.split("/")[-1]
-            output_image = output_folder + out_basepath + str(idx) + ".jpg"
-            
-            inference(
-                input_image, output_image, populated_prompt, a_prompt, n_prompt, num_samples, image_resolution, ddim_steps, guess_mode, control_strength, guidance_scale, seed, eta, low_threshold, high_threshold, apply_canny, model, ddim_sampler
-            )
-    shutil.rmtree(image_folder)
+
+def run_pipeline(input_path, output_path, prompt):
+    res_path = super_res_smooth_img(input_path)
+    control_net_aug_img(res_path, output_path, prompt)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Run the super-resolution and control-net augmentation pipelines.')
-    parser.add_argument('--input_folder', type=str, default=None,
-                        help='Path to the input folder for super-resolution + smoothing pipeline')
     parser.add_argument('--output_folder', type=str, default=None,
                         help='Path to the output folder for control-net augmentation')
     parser.add_argument('--labels_path', type=str, default=None,
@@ -116,14 +95,24 @@ if __name__ == "__main__":
                         help='Path to the prompts text file for control-net augmentation')
     args = parser.parse_args()
 
-    # Run the super-resolution + smoothing pipeline
-    super_res_smooth(
-        input_folder=args.input_folder
-    )
+    os.makedirs(args.output_folder, exist_ok=True)
 
-    # Run control-net augmentation
-    control_net_aug(
-        labels_path=args.labels_path,
-        prompts_path=args.prompts_path,
-        output_folder=args.output_folder
-    )
+    # Load models to avoid reloading for each prompt
+    apply_canny, model, ddim_sampler = load_controlnet_models()
+
+    # Load labels, and prompts path
+    paths_and_labels = load_paths_and_labels(args.labels_path)
+    prompts = load_prompts(args.prompts_path)
+    
+    # Loop through images
+    for path_and_label in paths_and_labels:
+        for idx, prompt in enumerate(prompts):
+            input_img_path, label = path_and_label
+            populated_prompt = prompt.format(label)
+
+            out_basepath, _ = os.path.splitext(input_img_path)
+            out_basepath = out_basepath.split("/")[-1]
+            output_img_path = args.output_folder + out_basepath + f"_{str(idx)}" + ".jpg"
+
+            # For each image, run complete augmentation pipeline
+            run_pipeline(input_img_path, output_img_path, populated_prompt)

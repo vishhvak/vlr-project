@@ -17,7 +17,7 @@ with open(label_file, 'r') as f:
 img_filenames = sorted(os.listdir(img_folder))
 
 # Generate lines for output text file
-output_lines = [f"{img_filename},{label}\n" for img_filename, label in zip(img_filenames, labels)]
+output_lines = [f"./content/{img_folder}/{img_filename},{label}\n" for img_filename, label in zip(img_filenames, labels)]
 
 # Write output lines to text file
 with open(output_file, 'w') as f:

@@ -83,8 +83,8 @@ def main(args):
     sr_image = cv2.cvtColor(sr_image, cv2.COLOR_RGB2BGR)
     sr_image = cv2.medianBlur(sr_image, 5)
     
-    sobelx = cv2.Sobel(sr_image, cv2.CV_64F, 1, 0, ksize=1)
-    sobely = cv2.Sobel(sr_image, cv2.CV_64F, 0, 1, ksize=1)
+    sobelx = cv2.Sobel(sr_image, cv2.CV_64F, 1, 0, ksize=5)
+    sobely = cv2.Sobel(sr_image, cv2.CV_64F, 0, 1, ksize=5)
     sobel = cv2.magnitude(sobelx, sobely)
     # Normalize the Sobel output to the range [0, 255]
     sobel_norm = cv2.normalize(sobel, None, 0, 255, cv2.NORM_MINMAX, cv2.CV_8U)
