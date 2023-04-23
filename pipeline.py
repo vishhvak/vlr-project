@@ -1,5 +1,6 @@
 import os
 import cv2
+import shutil
 import subprocess
 
 from annotator.canny import CannyDetector
@@ -52,15 +53,18 @@ def super_res_smooth():
                             '--model_weights_path', model_weights_path,
                             '--device_type', device_type])
 
+
 def load_prompts():
-    return [
-        'The word "{}" with solid jello alphabets on plain background'
-    ]
+    with open("prompts.txt", "r") as f:
+        prompts = f.readlines()
+    return [prompt.strip() for prompt in prompts]
+
 
 def load_paths_and_labels():
     with open('./data/input_labels.txt', 'r') as f:
         lines = f.readlines()
     return [line.strip().split(",") for line in lines]
+
 
 def control_net_aug():
     # Load models to avoid reloading for each prompt
@@ -74,8 +78,8 @@ def control_net_aug():
     image_resolution = 256
     ddim_steps = 20
     guess_mode = False
-    control_strength = 0.5
-    guidance_scale = 0.5
+    control_strength = 0.8
+    guidance_scale = 0.8
     seed = 16824
     eta = 0
     low_threshold = 40
@@ -86,19 +90,21 @@ def control_net_aug():
 
     prompts = load_prompts()
     paths_and_labels = load_paths_and_labels()
-    for prompt in prompts:
-        for path_and_label in paths_and_labels:
+    for path_and_label in paths_and_labels:
+        for idx, prompt in enumerate(prompts):
             image_path, label = path_and_label
             print(image_path, label)
             populated_prompt = prompt.format(label)
+            print(f"Current prompt: {populated_prompt}")
             input_image = cv2.imread(image_path)
             out_basepath, _ = os.path.splitext(image_path)
             out_basepath = out_basepath.split("/")[-1]
-            output_image = output_folder + out_basepath + ".jpg"
+            output_image = output_folder + out_basepath + str(idx) + ".jpg"
             
             inference(
                 input_image, output_image, populated_prompt, a_prompt, n_prompt, num_samples, image_resolution, ddim_steps, guess_mode, control_strength, guidance_scale, seed, eta, low_threshold, high_threshold, apply_canny, model, ddim_sampler
             )
+    shutil.rmtree("./data/super_res_inputs")
 
 
 if __name__ == "__main__":

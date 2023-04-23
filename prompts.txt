@@ -1,0 +1,4 @@
+'The word "{}" with solid metallic alphabets on plain background'
+'The word "{}" with solid jello alphabets on plain background'
+'The word "{}" with neon-style alphabets on plain background'
+'The word "{}" with blue alphabets on plain background'
