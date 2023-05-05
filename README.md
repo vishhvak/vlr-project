@@ -8,12 +8,16 @@ Download models and annotator ckpts from here
 
 
 ## To Run Control-Net Data Augmentation Pipeline
-- Create a "data/input" folder and place images to be augmented there
-- Inside the "data/" folder place input_labels.txt with the following format
+- mkdir "content/"
+- unzip image.zip into "content/"
+- After unzipping your images are in "content/MJ_train/"
+- Create a labels file of the format:
 ```
-./data/super_res_inputs/a.jpg,culver
-./data/super_res_inputs/b.jpg,BOUNDARIES
-./data/super_res_inputs/c.jpg,vaunt
-./data/super_res_inputs/d.jpg,INSULATED
+./content/MJ_train_5000_Adithya/image-000000002.jpg,spencerian
+./content/MJ_train_5000_Adithya/image-000000003.jpg,accommodatingly
 ```
-- run `python pipeline.py`
+- Create a prompts.txt file, here's a complete sample:
+```
+'The word "{}" with filled red alphabets on plain background'
+```
+- run `python pipeline.py` by supplying paths to --output_folder, --labels_path and --prompts_path 
