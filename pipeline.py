@@ -75,6 +75,16 @@ def control_net_aug_img(input_path, output_path, prompt):
     high_threshold = 100
 
     input_image = cv2.imread(input_path)
+    height, width = input_image.shape[:2]
+
+    # if the width is greater than 1000, resize the image
+    if width > 1000:
+        return
+        print("Resizing")
+        new_width = 512
+        new_height = int(height * (new_width/width))
+        input_image = cv2.resize(input_image, (new_width, new_height))
+    
     inference(
         input_image, output_path, prompt, a_prompt, n_prompt, num_samples, image_resolution, ddim_steps, guess_mode, control_strength, guidance_scale, seed, eta, low_threshold, high_threshold, apply_canny, model, ddim_sampler
     )
