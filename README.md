@@ -21,3 +21,20 @@ Download models and annotator ckpts from here
 'The word "{}" with filled red alphabets on plain background'
 ```
 - run `python pipeline.py` by supplying paths to --output_folder, --labels_path and --prompts_path 
+
+
+##To run Experiments
+- Clone repository https://github.com/roatienza/deep-text-recognition-benchmark
+- Replace dataset.py with the new dataset.py from this repository
+- Run the train command 
+
+```
+RANDOM=$$
+
+CUDA_VISIBLE_DEVICES=0 python3 train.py --train_data data_lmdb_release/training \
+--valid_data data_lmdb_release/evaluation --select_data MJ-ST \
+--batch_ratio 0.5-0.5 --Transformation None --FeatureExtraction None \ 
+--SequenceModeling None --Prediction None --Transformer \
+--TransformerModel=vitstr_tiny_patch16_224 --imgH 224 --imgW 224 \
+--manualSeed=$RANDOM  --sensitive
+```
